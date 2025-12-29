@@ -773,21 +773,6 @@
                     userAgent: navigator.userAgent
                 };
 
-                // Send email via EmailJS
-                emailjs.send(SERVICE_ID, TEMPLATE_ID, {
-                    subject: "NEW SUBSCRIBER",
-                    message: JSON.stringify(subscriberData, null, 2),
-                    topics: interests,
-                    subscriber_email: email
-                }).then(
-                    (response) => {
-                        console.log('SUCCESS!', response.status, response.text);
-                    },
-                    (error) => {
-                        console.error('FAILED...', error);
-                    }
-                );
-
                 const homeView = document.getElementById('homeView');
                 const dots = document.getElementById('navDots');
 
@@ -798,13 +783,13 @@
                 setTimeout(async () => {
                     homeView.style.display = 'none';
                     dots.style.display = 'none';
-                    
+
                     // Show processing sequence
                     const proc = document.getElementById('processingSequence');
                     proc.classList.replace('hidden-step', 'active-step');
                     proc.style.opacity = '1';
                     proc.style.transform = 'translateY(0)';
-                    
+
                     // Run the UI logs and progress bar
                     const bar = document.getElementById('processingBar');
                     const consoleBox = document.getElementById('logConsole');
@@ -845,9 +830,9 @@
                             topics: interests,
                             subscriber_email: email
                         });
-                        
+
                         console.log('SUCCESS!', response.status, response.text);
-                        
+
                         // Proceed to Success UI
                         targetSpeed = 1.0;
                         scannerLine.style.animationDuration = '4s';
@@ -872,16 +857,16 @@
 
                     } catch (error) {
                         console.error('FAILED...', error);
-                        
+
                         // Handle Error UI
                         isScanning = false;
                         targetSpeed = 0.4;
                         scannerLine.classList.remove('scanner-active');
-                        
+
                         proc.style.opacity = '0';
                         await new Promise(r => setTimeout(r, 300));
                         proc.classList.replace('active-step', 'hidden-step');
-                        
+
                         // Show home view again and display error
                         homeView.style.display = 'block';
                         dots.style.display = 'flex';
@@ -892,7 +877,6 @@
                             nextStep(3); // Return to final step
                         }, 50);
                     }
-                }, 400);
                 }, 400);
             });
         }
