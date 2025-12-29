@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Research Radar | AI Research Distilled</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #22d3ee;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #f8fafc;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            font-size: 0.95rem; /* Scaled down base font */
+        }
+        .mono { font-family: 'Roboto Mono', monospace; }
+        
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
+
+        .step-transition {
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .hidden-step {
+            display: none;
+            opacity: 0;
+            transform: scale(0.98) translateY(15px);
+        }
+        .active-step {
+            display: block;
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .scanner-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+            opacity: 0.4;
+            animation: scan 10s infinite linear;
+            z-index: -1;
+            transition: height 0.8s ease, opacity 0.8s ease, box-shadow 0.8s ease, animation-duration 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .scanner-active {
+            height: 6px;
+            opacity: 0.8;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
+            filter: hue-rotate(15deg);
+        }
+
+        @keyframes scan {
+            0% { top: -5%; }
+            100% { top: 105%; }
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        .glitch-text {
+            animation: glitch 2s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch {
+            0%, 100% { opacity: 1; transform: skew(0deg); }
+            10% { opacity: 0.8; transform: skew(-0.5deg); }
+            15% { opacity: 1; transform: skew(0.5deg); }
+        }
+
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes revealUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.35s; }
+
+        input[type="checkbox"] {
+            appearance: none;
+            background-color: #1e293b;
+            margin: 0;
+            font: inherit;
+            color: #22d3ee;
+            width: 1.25em;
+            height: 1.25em;
+            border: 1px solid #334155;
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+        }
+
+        input[type="checkbox"]::before {
+            content: "";
+            width: 0.75em;
+            height: 0.75em;
+            transform: scale(0);
+            transition: 150ms transform cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: inset 1em 1em #22d3ee;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        input[type="checkbox"]:checked::before {
+            transform: scale(1);
+        }
+
+        .error-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+            40%, 60% { transform: translate3d(3px, 0, 0); }
+        }
+
+        .interest-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .interest-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .interest-list::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+
+        .nav-tab {
+            position: relative;
+            transition: color 0.3s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            opacity: 0.75;
+        }
+        .nav-tab:hover {
+            opacity: 1;
+        }
+        .nav-tab-active {
+            color: var(--accent);
+            opacity: 1;
+        }
+        .nav-tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+
+    <canvas id="bgCanvas"></canvas>
+    <div id="scanner" class="scanner-line"></div>
+    
+    <!-- Top Navigation -->
+    <nav class="fixed top-6 right-6 z-50 flex gap-4 md:gap-5 px-5 py-2.5">
+        <button onclick="switchView('home')" id="tab-home" class="nav-tab nav-tab-active text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]">Home</button>
+        <button onclick="switchView('newsletter')" id="tab-newsletter" class="nav-tab text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]">Latest Issue</button>
+        <button onclick="switchView('disclaimer')" id="tab-disclaimer" class="nav-tab text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em]">Disclaimer</button>
+    </nav>
+
+    <header class="text-center mb-6 md:mb-10 z-10 w-full max-w-2xl px-4 mt-12">
+        <div class="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-[9px] md:text-[10px] mono uppercase tracking-[0.2em] md:tracking-[0.3em] animate-pulse">
+            <span class="relative flex h-1.5 w-1.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500"></span>
+            </span>
+            System Online: Scanning Global AI Feed
+        </div>
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tighter mb-4 text-white uppercase">
+            The Research <span class="text-cyan-400">Radar</span>
+        </h1>
+        <p class="text-slate-400 text-xs sm:text-sm md:text-base max-w-md mx-auto font-light leading-relaxed">
+            Synthesizing the global frontier of machine learning into actionable weekly intelligence.
+        </p>
+    </header>
+
+    <main id="subscriptionCard" class="w-full max-w-[95%] sm:max-w-lg glass-card p-6 md:p-10 rounded-[2rem] shadow-2xl relative z-10">
+        
+        <div id="navDots" class="flex items-center justify-center space-x-4 mb-8 md:mb-10">
+            <div id="dot-1" class="h-1.5 w-8 bg-cyan-400 rounded-full transition-all duration-700"></div>
+            <div id="dot-2" class="h-1.5 w-1.5 bg-slate-700 rounded-full transition-all duration-700"></div>
+            <div id="dot-3" class="h-1.5 w-1.5 bg-slate-700 rounded-full transition-all duration-700"></div>
+        </div>
+
+        <div id="error-feedback" class="hidden mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-[10px] mono text-center uppercase tracking-widest">
+            Invalid Transmission Parameters
+        </div>
+
+        <div id="homeView" class="view-content active-view">
+            <form id="subscriptionForm">
+                <!-- Step 1: Email -->
+                <div id="step1" class="active-step step-transition">
+                    <div class="mb-6 md:mb-8">
+                        <h2 class="text-xl md:text-2xl font-bold text-white mb-1">Targeting</h2>
+                        <p class="text-slate-400 text-xs md:text-sm">Where should we transmit the intelligence?</p>
+                    </div>
+                    
+                    <div class="relative group mb-6 md:mb-8">
+                        <div class="absolute -inset-0.5 bg-cyan-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500"></div>
+                        <input type="email" id="email" required placeholder="name@domain.com" 
+                            class="relative w-full bg-slate-950/50 border border-slate-700 rounded-xl p-4 md:p-5 focus:outline-none focus:border-cyan-400 text-white transition-all placeholder:text-slate-600 text-sm md:text-base">
+                    </div>
+
+                    <button type="button" onclick="validateStep1()" 
+                        class="w-full bg-white hover:bg-cyan-400 text-slate-950 font-black py-4 md:py-5 rounded-xl transition-all transform active:scale-95 uppercase tracking-tighter text-sm md:text-base">
+                        Continue to Calibration
+                    </button>
+                </div>
+
+                <!-- Step 2: Interests -->
+                <div id="step2" class="hidden-step step-transition">
+                    <div class="mb-5 md:mb-6">
+                        <h2 class="text-xl md:text-2xl font-bold text-white mb-1">Calibration</h2>
+                        <p class="text-slate-400 text-xs md:text-sm">Filter the signal. Choose your focus areas.</p>
+                    </div>
+                    
+                    <div class="interest-list space-y-2 mb-6 md:mb-8 max-h-[40vh] sm:max-h-64 overflow-y-auto pr-2">
+                        <label class="flex items-center p-3 md:p-3.5 bg-slate-950/30 border border-slate-800 rounded-xl cursor-pointer hover:border-cyan-500/50 transition-all">
+                            <input type="checkbox" name="interest" value="LLMs">
+                            <div class="ml-3">
+                                <span class="block text-[8px] md:text-[9px] font-bold text-cyan-400 mono tracking-widest uppercase">Popular</span>
+                                <span class="text-xs md:text-sm font-medium text-slate-300">Large Language Models (LLMs)</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 md:p-3.5 bg-slate-950/30 border border-slate-800 rounded-xl cursor-pointer hover:border-cyan-500/50 transition-all">
+                            <input type="checkbox" name="interest" value="CV">
+                            <div class="ml-3">
+                                <span class="block text-[8px] md:text-[9px] font-bold text-cyan-400 mono tracking-widest uppercase">Popular</span>
+                                <span class="text-xs md:text-sm font-medium text-slate-300">Computer Vision & Diffusion</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 md:p-3.5 bg-slate-950/30 border border-slate-800 rounded-xl cursor-pointer hover:border-cyan-500/50 transition-all">
+                            <input type="checkbox" name="interest" value="RL">
+                            <div class="ml-3">
+                                <span class="block text-[8px] md:text-[9px] font-bold text-cyan-400 mono tracking-widest uppercase">Popular</span>
+                                <span class="text-xs md:text-sm font-medium text-slate-300">Reinforcement Learning (RL)</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 md:p-3.5 bg-slate-950/30 border border-slate-800 rounded-xl cursor-pointer hover:border-cyan-500/50 transition-all">
+                            <input type="checkbox" name="interest" value="Agents">
+                            <div class="ml-3">
+                                <span class="text-xs md:text-sm font-medium text-slate-300">Autonomous AI Agents</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 md:p-3.5 bg-slate-950/30 border border-slate-800 rounded-xl cursor-pointer hover:border-cyan-500/50 transition-all">
+                            <input type="checkbox" name="interest" value="DL">
+                            <div class="ml-3">
+                                <span class="text-xs md:text-sm font-medium text-slate-300">Deep Learning Architectures</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 md:p-3.5 bg-slate-950/30 border border-slate-800 rounded-xl cursor-pointer hover:border-cyan-500/50 transition-all">
+                            <input type="checkbox" name="interest" value="Robotics">
+                            <div class="ml-3">
+                                <span class="text-xs md:text-sm font-medium text-slate-300">Embodied AI & Robotics</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="button" onclick="nextStep(1)" class="flex-1 text-slate-400 text-xs font-bold hover:text-white transition-colors uppercase">Back</button>
+                        <button type="button" onclick="validateStep2()" class="flex-[3] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black py-4 rounded-xl transition-all uppercase tracking-tighter text-sm">Review Protocol</button>
+                    </div>
+                </div>
+
+                <!-- Step 3: T&C -->
+                <div id="step3" class="hidden-step step-transition">
+                    <div class="mb-5 md:mb-6">
+                        <h2 class="text-xl md:text-2xl font-bold text-white mb-1">Final Protocol</h2>
+                        <p class="text-slate-400 text-xs md:text-sm">Review transmission parameters.</p>
+                    </div>
+                    
+                    <div class="bg-slate-950/80 p-4 md:p-5 rounded-xl text-[10px] md:text-[11px] text-slate-500 mb-6 md:mb-8 leading-relaxed border border-slate-800 h-24 md:h-32 overflow-y-auto">
+                        <p class="mb-3 uppercase font-bold text-slate-400">Consent required:</p>
+                        <p class="mb-3">1. TRANSMISSION: Periodic electronic communications containing research summaries.</p>
+                        <p class="mb-3">2. IDENTIFICATION: Secure storage of email for delivery only.</p>
+                        <p>3. TERMINATION: Disconnect at any time via the link in transmissions.</p>
+                    </div>
+
+                    <div class="flex items-start mb-6 md:mb-8 group">
+                        <input type="checkbox" id="terms" required class="mt-0.5">
+                        <label for="terms" class="ml-3 md:ml-4 text-[10px] md:text-xs text-slate-400 leading-snug cursor-pointer group-hover:text-slate-300 transition-colors">
+                            I acknowledge the protocols and wish to receive high-fidelity research intelligence.
+                        </label>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="button" onclick="nextStep(2)" class="flex-1 text-slate-400 text-xs font-bold hover:text-white transition-colors uppercase">Back</button>
+                        <button type="submit" class="flex-[3] bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black py-4 rounded-xl transition-all shadow-[0_0_30px_rgba(34,211,238,0.2)] uppercase tracking-tighter text-sm">Activate Radar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="newsletterView" class="view-content hidden">
+            <div class="text-center py-10">
+                <h2 class="text-xl md:text-2xl font-bold text-white mb-4">Latest Research Sweep</h2>
+                <div class="bg-slate-950/40 border border-slate-800 rounded-2xl p-6 text-left mb-6">
+                    <p class="text-cyan-400 mono text-[10px] uppercase tracking-widest mb-2">Issue #042 // Dec 2025</p>
+                    <h3 class="text-lg font-bold text-slate-200 mb-2">Multimodal Reasoning Chains</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">Synthesis of the latest breakthroughs in vision-language models and agentic planning architectures...</p>
+                </div>
+                <button onclick="switchView('home')" class="text-cyan-400 text-[10px] mono uppercase tracking-widest hover:text-white transition-colors" style='vertical-align: center;'>Subscribe to view full feed <span style='font-size:20px;'>&#8594;</span></button>
+            </div>
+        </div>
+
+        <div id="disclaimerView" class="view-content hidden">
+            <div class="py-6">
+                <h2 class="text-xl md:text-2xl font-bold text-white mb-4">Legal Protocol</h2>
+                <div class="text-xs text-slate-400 leading-relaxed space-y-4">
+                    <p>The Research Radar is an automated intelligence synthesis platform. While we strive for high-fidelity data, machine-generated summaries may contain hallucinations or technical inaccuracies.</p>
+                    <p>All transmitted information is for research purposes only and does not constitute technical advice.</p>
+					<p>Legal Disclaimer Effective Date: December 29, 2025 By accessing, reading, or subscribing to The Research Radar (the "Newsletter"), you acknowledge and agree to the terms of this Disclaimer. 1. Not Professional Advice The content provided in this Newsletter is for informational and educational purposes only. It does not constitute technical, legal, financial, or investment advice. The AI research landscape is rapidly evolving, and the summaries provided reflect a distillation of specific papers which may contain errors or be superseded by newer research. Always consult with a qualified professional before making any business or technical decisions based on the content of this Newsletter. 2. Accuracy of Information While we strive for high-fidelity reporting, The Research Radar makes no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, or suitability of the information, research summaries, or "Radar Insights" contained herein. Any reliance you place on such information is strictly at your own risk. 3. Limitation of Liability In no event will the author, publisher, or affiliates of The Research Radar be liable for any loss or damage including, without limitation, indirect or consequential loss or damage, or any loss or damage whatsoever arising from loss of data or profits arising out of, or in connection with, the use of this Newsletter. 4. Intellectual Property and Fair Use This Newsletter summarizes research papers, blog posts, and technical reports from various third-party sources (e.g., arXiv, Google DeepMind, OpenAI). All trademarks and copyrights remain the property of their respective owners. Our summaries are intended to provide commentary and analysis under "Fair Use" or "Fair Dealing" doctrines. We do not claim ownership of the original research presented. 5. External Links The Newsletter contains links to external websites (such as paper PDFs or company blogs). We have no control over the nature, content, and availability of those sites. The inclusion of any links does not necessarily imply a recommendation or endorse the views expressed within them. 6. AI-Generated Content Notice Portions of this Newsletter’s summaries or analysis may be generated or assisted by Artificial Intelligence models. While these outputs are reviewed for quality, the inherent nature of AI means that "hallucinations" or logical errors may occur. Contact Information If you have any questions regarding this disclaimer, please contact the operator through the official subscription portal. © 2025 The Research Radar. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Sequence -->
+        <div id="processingSequence" class="hidden-step py-4 md:py-6 transition-all duration-700">
+            <div class="mb-6 md:mb-8">
+                <h3 class="text-cyan-400 font-bold mono text-[10px] md:text-xs uppercase tracking-[0.2em] mb-4 glitch-text">Initializing High-Fidelity Sweep...</h3>
+                <div class="w-full bg-slate-900/50 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                    <div id="processingBar" class="progress-bar-fill h-full bg-cyan-400 shadow-[0_0_15px_#22d3ee]"></div>
+                </div>
+            </div>
+            <div id="logConsole" class="bg-black/40 rounded-2xl p-4 md:p-6 h-40 md:h-48 overflow-hidden mono text-[9px] md:text-[10px] text-slate-500 leading-relaxed border border-white/5 transition-all duration-700">
+                <!-- Logs injected via JS -->
+            </div>
+        </div>
+
+        <!-- Success Message -->
+        <div id="successMessage" class="hidden-step text-center py-6 md:py-10">
+            <div class="relative inline-block mb-6 md:mb-8 reveal-up delay-1">
+                <div class="absolute inset-0 bg-cyan-500 blur-3xl opacity-20 animate-pulse"></div>
+                <div class="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-cyan-500/5 border border-cyan-500/20 rounded-full">
+                    <svg class="w-8 h-8 md:w-10 md:h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+            </div>
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4 tracking-tighter uppercase reveal-up delay-2">Target Locked</h2>
+            <p class="text-slate-400 text-xs md:text-sm leading-relaxed mb-8 md:mb-10 max-w-[280px] mx-auto reveal-up delay-3">Connection established. The first research sweep is scheduled for transmission.</p>
+            <button onclick="location.reload()" class="reveal-up delay-3 px-8 py-3 border border-slate-800 rounded-full text-slate-500 hover:text-cyan-400 hover:border-cyan-400/50 transition-all text-[9px] md:text-[10px] uppercase tracking-widest mono bg-slate-950/50">Return to Base</button>
+        </div>
+    </main>
+
+    <footer class="mt-8 md:mt-12 text-slate-400 text-[8px] md:text-[10px] text-center uppercase tracking-[0.2em] mono leading-relaxed w-full px-4">
+        &copy; 2025 THE RESEARCH RADAR // VER: 2.3.0<br>
+        <span class="opacity-60 tracking-normal mt-2 block case">Powered by Agentic Synthesis & Multi-Source Lab Feeds  • INTELLIGENCE DISTILLED</span>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        let particleSpeed = 0.4; 
+        let targetSpeed = 0.4;
+        let isScanning = false;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            if(particles.length > 0) {
+                particles.forEach(p => p.init());
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor() { this.init(); }
+            init() {
+                this.x = (Math.random() - 0.5) * canvas.width * 2;
+                this.y = (Math.random() - 0.5) * canvas.height * 2;
+                this.z = Math.random() * canvas.width;
+                this.setBaseColor();
+            }
+
+            setBaseColor() {
+                if (isScanning && Math.random() > 0.98) {
+                    this.color = Math.random() > 0.5 ? '#ef4444' : '#22c55e';
+                } else {
+                    this.color = Math.random() > 0.85 ? '#22d3ee' : '#334155';
+                }
+            }
+
+            update() {
+                const lerpFactor = targetSpeed < particleSpeed ? 0.015 : 0.03;
+                particleSpeed += (targetSpeed - particleSpeed) * lerpFactor;
+                
+                this.z -= particleSpeed;
+                if (this.z <= 0) {
+                    this.init();
+                    this.setBaseColor();
+                }
+            }
+            draw() {
+                const x = (this.x / this.z) * 100 + canvas.width / 2;
+                const y = (this.y / this.z) * 100 + canvas.height / 2;
+                const s = Math.max(0, (1 - this.z / canvas.width) * 1.8);
+                if (x < 0 || x > canvas.width || y < 0 || y > canvas.height || s <= 0.1) return;
+                ctx.beginPath();
+                ctx.arc(x, y, s, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                
+                if (isScanning && (this.color === '#ef4444' || this.color === '#22c55e')) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = this.color;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        for (let i = 0; i < 450; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        const feedback = document.getElementById('error-feedback');
+        const emailInput = document.getElementById('email');
+        const card = document.getElementById('subscriptionCard');
+        const scannerLine = document.getElementById('scanner');
+
+        const showError = (msg) => {
+            feedback.innerText = msg;
+            feedback.classList.remove('hidden');
+            card.classList.add('error-shake');
+            setTimeout(() => card.classList.remove('error-shake'), 500);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const hideError = () => feedback.classList.add('hidden');
+        if(emailInput) emailInput.addEventListener('input', hideError);
+
+        function validateStep1() {
+            const email = emailInput.value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) { showError("INVALID TRANSMISSION TARGET"); return; }
+            nextStep(2);
+        }
+
+        function validateStep2() {
+            const interests = document.querySelectorAll('input[name="interest"]:checked');
+            if (interests.length === 0) { showError("SELECT AT LEAST ONE SIGNAL"); return; }
+            nextStep(3);
+        }
+
+        function nextStep(step) {
+            hideError();
+            document.querySelectorAll('.step-transition').forEach(el => {
+                el.style.opacity = '0';
+                el.style.transform = 'scale(0.98) translateY(10px)';
+                setTimeout(() => el.classList.replace('active-step', 'hidden-step'), 300);
+            });
+
+            setTimeout(() => {
+                const next = document.getElementById('step' + step);
+                if (next) {
+                    next.classList.replace('hidden-step', 'active-step');
+                    next.offsetHeight;
+                    next.style.opacity = '1';
+                    next.style.transform = 'scale(1) translateY(0)';
+                }
+            }, 350);
+
+            for(let i = 1; i <= 3; i++) {
+                const dot = document.getElementById('dot-' + i);
+                if (dot) {
+                    if (i === step) {
+                        dot.style.width = '32px';
+                        dot.style.backgroundColor = '#22d3ee';
+                    } else {
+                        dot.style.width = '8px';
+                        dot.style.backgroundColor = i < step ? '#083344' : '#334155';
+                    }
+                }
+            }
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('nav-tab-active'));
+            
+            document.getElementById(viewId + 'View').classList.remove('hidden');
+            document.getElementById('tab-' + viewId).classList.add('nav-tab-active');
+
+            const isHome = viewId === 'home';
+            document.getElementById('navDots').style.display = isHome ? 'flex' : 'none';
+        }
+
+        async function runProcessingSequence() {
+            const logs = [
+                "ESTABLISHING HANDSHAKE WITH ARXIV API...",
+                "PINGING SEMANTIC SCHOLAR DATABASE...",
+                "CALIBRATING NEURAL MESH FOR SYNTHESIS...",
+                "FILTERING LLM SIGNAL FROM NOISE...",
+                "MAPPING DISK SPACE FOR WEEKLY CACHE...",
+                "OPTIMIZING GRADIENT FLOW...",
+                "INJECTING STATE-OF-THE-ART PARAMETERS...",
+                "ENCRYPTING TRANSMISSION CHANNEL...",
+                "FINALIZING SYSTEM SYNC...",
+                "PROTOCOL ACTIVATED. STANDING BY."
+            ];
+
+            const bar = document.getElementById('processingBar');
+            const consoleBox = document.getElementById('logConsole');
+            const proc = document.getElementById('processingSequence');
+            
+            isScanning = true;
+            targetSpeed = 4.0; 
+            scannerLine.classList.add('scanner-active');
+            scannerLine.style.animationDuration = '1.2s'; 
+            
+            proc.classList.replace('hidden-step', 'active-step');
+            proc.style.opacity = '1';
+            proc.style.transform = 'translateY(0)';
+
+            for (let i = 0; i < logs.length; i++) {
+                const p = document.createElement('p');
+                p.className = 'mb-2 opacity-0 transform translate-x-[-10px] transition-all duration-500 flex items-center';
+                p.innerHTML = `<span class="text-cyan-500 mr-2">●</span> ${logs[i]}`;
+                consoleBox.prepend(p);
+                
+                setTimeout(() => {
+                    p.classList.remove('opacity-0', 'translate-x-[-10px]');
+                }, 50);
+                
+                const progress = ((i + 1) / logs.length) * 100;
+                bar.style.width = `${progress}%`;
+                
+                await new Promise(r => setTimeout(r, 400 + Math.random() * 500));
+            }
+
+            targetSpeed = 1.0; 
+            scannerLine.style.animationDuration = '4s'; 
+            await new Promise(r => setTimeout(r, 800));
+            
+            isScanning = false;
+            targetSpeed = 0.4; 
+            scannerLine.classList.remove('scanner-active');
+            scannerLine.style.animationDuration = '10s'; 
+            
+            proc.style.opacity = '0';
+            proc.style.transform = 'scale(0.95)';
+            
+            await new Promise(r => setTimeout(r, 600));
+            
+            proc.classList.replace('active-step', 'hidden-step');
+            const success = document.getElementById('successMessage');
+            success.classList.replace('hidden-step', 'active-step');
+            
+            card.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                card.style.transform = 'scale(1)';
+            }, 400);
+
+            success.offsetHeight;
+            success.style.opacity = '1';
+        }
+
+        const subForm = document.getElementById('subscriptionForm');
+        if (subForm) {
+            subForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (!document.getElementById('terms').checked) {
+                    showError("PROTOCOL ACKNOWLEDGEMENT REQUIRED");
+                    return;
+                }
+                
+                const homeView = document.getElementById('homeView');
+                const dots = document.getElementById('navDots');
+                
+                homeView.style.opacity = '0';
+                dots.style.opacity = '0';
+                
+                setTimeout(() => {
+                    homeView.style.display = 'none';
+                    dots.style.display = 'none';
+                    runProcessingSequence();
+                }, 400);
+            });
+        }
+    </script>
+</body>
+</html>
