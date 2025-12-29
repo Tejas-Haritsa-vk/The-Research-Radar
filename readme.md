@@ -48,7 +48,7 @@ No Server Required: Since this is a static frontend project using a CDN for Tail
 
 Changing the Name
 
-To change the branding from "Research Radar" to something else (e.g., "SOTA Sentinel"), search for the <h1> tag in index.html and update the text.
+To change the branding from "Research Radar" to something else (e.g., "SOTA Sentinel"), search for the "< h1 >" tag in index.html and update the text.
 
 Adjusting the Colors
 
